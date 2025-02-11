@@ -1,7 +1,7 @@
 import os
 import requests
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlparse, unquote
 import re
 import time
 
@@ -22,20 +22,29 @@ def get_filename_from_response(response, url):
     """
     从响应头或 URL 中提取文件名。
     """
-    # 1. 尝试从 Content-Disposition 头中获取文件名
     content_disposition = response.headers.get('Content-Disposition')
     if content_disposition:
-        # 匹配 filename="filename.ext" 或 filename=filename.ext
-        match = re.search(r'filename\*?=["\']?(?:UTF-\d[\'"]*)?([^"\';]*)', content_disposition)
+        # 1. 尝试从 filename* 提取文件名（RFC 5987 格式）
+        match = re.search(r'filename\*=(?:UTF-8\'\')?([^\s;]+)', content_disposition)
         if match:
-            return match.group(1).strip()
+            filename = unquote(match.group(1))
+            return filename
 
-    # 2. 如果 Content-Disposition 头不存在，则从 URL 中提取文件名
+        # 2. 尝试从 filename 提取文件名
+        match = re.search(r'filename=["\']?([^"\';]*)', content_disposition)
+        if match:
+            filename = match.group(1).strip()
+            # 如果文件名是 URL 编码的，解码
+            if '%' in filename:
+                filename = unquote(filename)
+            return filename
+
+    # 3. 如果 Content-Disposition 头不存在，则从 URL 中提取文件名
     filename = os.path.basename(urlparse(url).path)
     if filename:
         return filename
 
-    # 3. 如果以上方法都失败，则使用默认文件名
+    # 4. 如果以上方法都失败，则使用默认文件名
     return 'downloaded_file'
 
 class DownloadHandler(BaseHTTPRequestHandler):
