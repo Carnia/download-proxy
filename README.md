@@ -6,23 +6,23 @@
 
 ## Docker 部署说明
 1. 运行 Docker 容器
-构建完镜像后，使用以下命令运行 Docker 容器：
-
-```bash
-docker run -d -p 8080:8080 --name download-proxy xlqdys/download-proxy
+构建完镜像后，使用docker compose运行 Docker 容器：
+`docker-compose.yml:`
+```yml
+services:
+  download-server:  # 服务名称
+    image: download-server  # 使用的镜像名称
+    container_name: download-server  # 容器名称
+    ports:
+      - "8080:8080"  # 将容器的 8080 端口映射到主机的 8080 端口
+    volumes:
+      - ./download:/app/downloads  # 挂载宿主机的目录到容器内
+    environment:
+      - DEFAULT_SAVE_PATH=/app/downloads  # 设置环境变量
+      - API_KEY=123456 #如果配置了秘钥，则请求接口时要加上api-key参数
+    restart: always  # 容器意外停止时自动重启
 ```
-- -d：让容器在后台运行。
-- -p 8080:8080：将容器内的 8080 端口映射到主机的 8080 端口。
-- --name download-proxy：为容器指定一个名字。
-如果您需要自定义保存路径或 API 密钥，可以通过 -e 参数设置环境变量：
 
-```bash
-docker run -d -p 8080:8080 \
-  -e DEFAULT_SAVE_PATH="/path/to/save" \
-  -e API_KEY="your_api_key" \
-  --name download-proxy \
-  xlqdys/download-proxy
-```
 2. 访问文件下载服务
 在容器启动后，您可以通过以下 URL 访问文件下载服务：
 `http://<docker_host_ip>:8080/download?url=<file_url>&cookie=<cookie_value>&savePath=<save_path>&api_key=<api_key>
