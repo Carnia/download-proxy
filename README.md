@@ -1,4 +1,6 @@
-# 文件下载服务器
+# zlibrary文件下载服务器
+
+https://github.com/Carnia/download-proxy
 
 在服务器上部署一个文件下载服务，通过接口告知服务器要下载的内容，下载目的地是服务器。
 
@@ -10,16 +12,55 @@
 `docker-compose.yml:`
 ```yml
 services:
-  download-server:  # 服务名称
-    image: download-server  # 使用的镜像名称
-    container_name: download-server  # 容器名称
+  # 远程下载zlibrary书籍能力
+  download-proxy:  # 服务名称
+    image: xlqdys/download-proxy # 使用的镜像名称
+    container_name: download-proxy  # 容器名称
     ports:
       - "8080:8080"  # 将容器的 8080 端口映射到主机的 8080 端口
     volumes:
-      - ./download:/app/downloads  # 挂载宿主机的目录到容器内
+      - /mnt/media/talebookData/books/imports:/app/downloads  # 挂载宿主机的目录到容器内
     environment:
-      - DEFAULT_SAVE_PATH=/app/downloads  # 设置环境变量
       - API_KEY=123456 #如果配置了秘钥，则请求接口时要加上api-key参数
+    restart: always  # 容器意外停止时自动重启
+```
+
+`包含talebook的docker-compose.yml:`
+
+```yml
+services:
+  talebook:
+    restart: always
+    image: talebook/talebook:latest
+    volumes:
+      - /mnt/media/talebookData:/data
+    ports:
+      - "6080:80"
+      - "6443:443"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Shanghai
+      - SSR=OFF
+    depends_on:
+      - douban-rs-api
+
+  # optional, for meta plugins
+  # please set "http://douban-rs-api" in settings
+  douban-rs-api:
+    restart: always
+    image: ghcr.nju.edu.cn/cxfksword/douban-api-rs
+
+  # 远程下载zlibrary书籍能力
+  download-proxy:  # 服务名称
+    image: xlqdys/download-proxy # 使用的镜像名称
+    container_name: download-proxy  # 容器名称
+    ports:
+      - "8080:8080"  # 将容器的 8080 端口映射到主机的 8080 端口
+    volumes:
+      - /mnt/media/talebookData/books/imports:/app/downloads  # 挂载宿主机的目录到容器内
+    environment:
+      - API_KEY=106
     restart: always  # 容器意外停止时自动重启
 ```
 
@@ -50,3 +91,9 @@ docker rm download-proxy
 ```bash
 docker rmi download-proxy
 ```
+
+## 浏览器插件部署说明
+- 下载浏览器插件文件：https://github.com/Carnia/download-proxy/tree/main/chromeExt
+- 在浏览器中加载插件
+
+![demo](https://github.com/Carnia/download-proxy/blob/main/picture/demo.jpg)

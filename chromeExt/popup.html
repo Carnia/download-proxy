@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>配置</title>
+  <style>
+    body {
+      width: 300px;
+      padding: 10px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    input {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div>此插件仅用于z-library页面，提供远程下载的前端界面</div>
+  <div>需要自行部署服务端：见 <a href="https://hub.docker.com/r/xlqdys/download-proxy">https://hub.docker.com/r/xlqdys/download-proxy</a></div>
+  <br>
+  <h2>配置项</h2>
+  <label for="urlA">服务端接口地址:</label>
+  <input type="text" id="urlA" placeholder="输入接口地址">
+
+  <label for="apiKey">服务端API Key (可选):</label>
+  <input type="text" id="apiKey" placeholder="输入API Key">
+
+  <label for="savePath">服务端保存路径 (可选，搞不清楚就不填):</label>
+  <input type="text" id="savePath" placeholder="输入保存路径">
+
+  <label for="cookie">Cookie (可选，如果你已在非无痕模式登陆z-library，将自动填充，无需手动填写):</label>
+  <input type="text" id="cookie" placeholder="无痕模式需要手动填cookie">
+
+  <button id="save">保存配置</button>
+
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+{
+    "manifest_version": 3,
+    "name": "远程下载插件",
+    "version": "1.0",
+    "permissions": [
+      "activeTab",
+      "cookies",
+      "storage",
+      "http://*/*",
+      "https://*/*"
+    ],
+    "host_permissions": [
+      "<all_urls>"
+    ],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": {
+        "16": "icons/zl.png",
+        "48": "icons/zl.png",
+        "128": "icons/zl.png"
+      }
+    },
+    "content_scripts": [
+      {
+        "matches": ["*://*/book*"],
+        "js": ["content.js"]
+      }
+    ]
+  }
