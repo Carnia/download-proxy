@@ -51,7 +51,7 @@ class DownloadHandler(BaseHTTPRequestHandler):
         query_params = parse_qs(parsed_path.query)
         url = query_params.get('url', [None])[0]
         cookie = query_params.get('cookie', [None])[0]
-        save_path = query_params.get('savePath', [DEFAULT_SAVE_PATH])[0]
+        save_path = query_params.get('save_path', [DEFAULT_SAVE_PATH])[0]
         api_key = query_params.get('api_key', [None])[0]
 
         # 如果部署时提供了 API_KEY，则进行校验
