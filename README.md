@@ -66,17 +66,17 @@ services:
 
 2. 访问文件下载服务
 在容器启动后，您可以通过以下 URL 访问文件下载服务：
-`http://<docker_host_ip>:8080/download?url=<file_url>&cookie=<cookie_value>&savePath=<save_path>&api_key=<api_key>
+`http://<docker_host_ip>:8080/download?url=<file_url>&cookie=<cookie_value>&save_path=<save_path>&api_key=<api_key>
 `
 
 其中：
 - url：文件的下载 URL（必填）。
 - cookie：请求时需要使用的 Cookie（必填）。
-- savePath：文件保存路径（可选，默认为环境变量 DEFAULT_SAVE_PATH 或 /tmp/downloads）。
+- save_path：文件保存路径（可选，默认为环境变量 DEFAULT_SAVE_PATH 或 /tmp/downloads）。
 - api_key：API 密钥（可选，如果启用了 API 密钥验证）。
 示例：
 ```bash
-http://127.0.0.1:8080/download?url=https://example.com/file.zip&cookie=mycookie&savePath=/tmp/downloads&api_key=myapikey
+http://127.0.0.1:8080/download?url=https://example.com/file.zip&cookie=mycookie&save_path=/tmp/downloads&api_key=myapikey
 ```
 3. 停止和删除容器
 若需要停止并删除容器，可以使用以下命令：
