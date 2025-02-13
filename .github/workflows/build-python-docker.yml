@@ -39,5 +39,4 @@ jobs:
           platforms: linux/amd64,linux/arm64
             # ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.REPOSITORY }}:${{ steps.date.outputs.today }}
           tags: |
-            ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.REPOSITORY }}:${{ github.ref_name }}
-            ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.REPOSITORY }}:latest
+            ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.REPOSITORY }}:python

@@ -25,7 +25,7 @@ COPY --from=build /app ./
 
 # 设置环境变量
 ENV PORT=8080
-ENV DEFAULT_SAVE_PATH=./download
+ENV DEFAULT_SAVE_PATH=/app/downloads
 
 # 暴露端口
 EXPOSE 8080
