@@ -42,11 +42,10 @@ async function handleButtonBClick(event) {
 
 
   // 优先使用配置的cookie，如果未配置则获取当前页面的cookie
-  const cookie = configuredCookie || await getCookies();
-  if (!configuredCookie) {
-    chrome.storage.sync.set({ cookie }, () => {
-      console.log('cookie已同步到缓存');
-    });
+  const webCookie = document.cookie;
+  const cookie = configuredCookie || webCookie;
+  if (!cookie.includes('user')) {
+    alert('请点击插件图标补充cookie，或者在当前页登录')
   }
   const buttonB = event.target;
   buttonB.disabled = true;
@@ -70,15 +69,6 @@ async function handleButtonBClick(event) {
   );
 }
 
-// 获取当前页面的cookies
-function getCookies() {
-  return new Promise((resolve) => {
-    chrome.runtime.sendMessage({ action: 'getCookies' }, (response) => {
-      resolve(response.cookie);
-    });
-  });
-}
-
 // 获取配置
 function getConfig() {
   return new Promise((resolve) => {
@@ -87,9 +77,53 @@ function getConfig() {
     });
   });
 }
-
+/**
+ *  获取当前url的cookies（不包含无痕模式）
+ * @returns 
+ */
+function getUrlCookies() {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ action: 'getCookies' }, (response) => {
+      resolve(response.cookie);
+    });
+  });
+}
+const isCookieOk = (str) => {
+  return str?.includes('user')
+}
+const initCookie = async () => {
+  const currentCookie = document.cookie;
+  if (isCookieOk(currentCookie)) {
+    chrome.storage.sync.set({ cookie: currentCookie }, () => {
+      console.log('页面原生cookie已同步到插件配置');
+    });
+    return
+  }
+  // 优先使用配置的cookie，如果未配置则获取当前页面的cookie
+  const { cookie: configuredCookie } = await getConfig();
+  const urlCookie = await getUrlCookies();
+  if (isCookieOk(configuredCookie || urlCookie)) {
+    // 当前未登录、未配置、但是普通窗口有登陆过
+      if(!isCookieOk(configuredCookie) && isCookieOk(urlCookie)) {
+        const apply = confirm(`插件：当前页面未登录，已检测到非无痕页面的cookie，是否使用它登录`)
+        if (!apply) {
+          alert('下载插件初始化中断，请登录z-lib后使用')
+          throw new error('用户不同意')
+        }
+      }
+      chrome.runtime.sendMessage({
+        action: 'setCookies', origin: location.origin, cookie: configuredCookie || urlCookie
+      }, () => {
+        location.reload()
+      })
+  } else {
+    alert('如需使用插件，请登录z-lib或者在插件界面设置cookie')
+    throw new error('未填写cookie，没有任何cookie来源')
+  }
+}
 // 页面加载完成后插入按钮B
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
+  await initCookie()
   insertButton()
   const regex = /^\/book\/([^/]+)/; // 正则表达式
 
@@ -103,7 +137,7 @@ window.addEventListener('load', () => {
     .then(response => response.json())
     .then(data => {
       const externalHtml = document.createElement('div')
-      externalHtml.innerHTML=data.books.map(v => {
+      externalHtml.innerHTML = data.books.map(v => {
         v.href = location.origin + v.href
         return `
       <input type="radio" id=${v.href} name="_file_url" value="${v.href}">

@@ -6,6 +6,7 @@
       "activeTab",
       "cookies",
       "storage",
+      "scripting",
       "http://*/*",
       "https://*/*"
     ],

@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 const { URL } = require('url');
 
 const app = express();
+app.set('trust proxy', true); // 设置信任代理
 const PORT = process.env.PORT || 8080; // 服务端口，默认 8080
 const DEFAULT_SAVE_PATH = process.env.DEFAULT_SAVE_PATH || './download'; // 默认文件保存路径
 const API_KEY = process.env.API_KEY; // API 访问密钥
