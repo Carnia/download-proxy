@@ -55,7 +55,10 @@ async function handleButtonBClick(event) {
   chrome.runtime.sendMessage(
     {
       action: 'sendRequest',
-      url: `${urlA}?url=${encodeURIComponent(href)}&api_key=${apiKey}&save_path=${savePath}&cookie=${encodeURIComponent(cookie)}`
+      url: urlA,
+      body: {
+        url: href, cookie, save_path:savePath, api_key:apiKey
+      }
     },
     (response) => {
       buttonB.innerText = '远程下载';

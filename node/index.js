@@ -21,6 +21,7 @@ const limiter = rateLimit({
 });
 
 app.use(limiter);
+app.use(express.json());
 
 /**
  * 从响应头或 URL 中提取文件名
@@ -62,8 +63,8 @@ const getFilenameFromResponse = (response, url) => {
 };
 
 // 文件下载接口
-app.get('/download', async (req, res) => {
-  const { url, cookie, save_path, api_key } = req.query;
+app.post('/download', async (req, res) => {
+  const { url, cookie, save_path, api_key } = req.body;
 
   // 检查必要参数
   if (!url || !cookie) {

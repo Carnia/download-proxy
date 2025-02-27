@@ -10,7 +10,13 @@ export default defineBackground(() => {
       return true; // 保持消息通道打开以支持异步响应
     } else if (request.action === 'sendRequest') {
       // 发起请求
-      fetch(request.url)
+      fetch(request.url, {
+        method: 'POST',
+        headers: {  // 新增请求头
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(request.body),
+      })
         .then(response => response.text())
         .then(data => {
           sendResponse({ data });
