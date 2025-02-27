@@ -136,11 +136,13 @@ const doDownload = async () => {
   browser.runtime.sendMessage(
     {
       action: "sendRequest",
-      url: `${urlString}?url=${encodeURIComponent(
-        picked.value
-      )}&api_key=${apiKey}&save_path=${savePath}&cookie=${encodeURIComponent(
-        cookie
-      )}`,
+      url: urlString,
+      body: {
+        url: picked.value,
+        api_key: apiKey,
+        save_path: savePath,
+        cookie: cookie,
+      }
     },
     (response) => {
       if (response.error) {
