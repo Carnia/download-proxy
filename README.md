@@ -65,9 +65,9 @@ services:
 ```
 
 2. 访问文件下载服务
-在容器启动后，您可以通过以下 URL 访问文件下载服务：
-`http://<docker_host_ip>:8080/download?url=<file_url>&cookie=<cookie_value>&save_path=<save_path>&api_key=<api_key>
-`
+在容器启动后，您可以通过以下 URL 进行post请求，访问文件下载服务：
+`http://<docker_host_ip>:8080/download`
+body参数包含url,cookie,save_path,api_key
 
 其中：
 - url：文件的下载 URL（必填）。
@@ -76,7 +76,14 @@ services:
 - api_key：API 密钥（可选，如果启用了 API 密钥验证）。
 示例：
 ```bash
-http://127.0.0.1:8080/download?url=https://example.com/file.zip&cookie=mycookie&save_path=a/b&api_key=myapikey
+curl -X POST "http://127.0.0.1:8080/download" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "url": "https://zlibrary.com/book.pdf",
+           "cookie": "session_id=abc123; token=xyz789",
+           "save_path": "",
+           "api_key": ""
+         }'
 ```
 3. 停止和删除容器
 若需要停止并删除容器，可以使用以下命令：
