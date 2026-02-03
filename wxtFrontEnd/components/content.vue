@@ -174,8 +174,8 @@ const doDownload = async () => {
       downloadLoading.value = false;
       ElMessage({
         type: "success",
-        message: response.message,
-        duration: 5000,
+        message:`${response.message} 路径：${response.filePath}`,
+        duration: 500000,
         showClose: true
       });
       // 3秒后重置进度条
@@ -191,7 +191,7 @@ const doDownload = async () => {
       ElMessage({
         type: "error",
         message: "请求失败: " + (response.error || response.message),
-        duration: 10000,
+        duration: 10000000,
         showClose: true
       });
       port.disconnect();
