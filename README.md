@@ -22,6 +22,8 @@ services:
       - /mnt/media/talebookData/books/imports:/app/downloads  # 挂载宿主机的目录到容器内
     environment:
       - API_KEY=123456 #如果配置了秘钥，则请求接口时要加上api-key参数
+      - HTTP_PROXY=http://proxy.example.com:8080  # HTTP 代理（可选）
+      - HTTPS_PROXY=http://proxy.example.com:8080  # HTTPS 代理（可选）
     restart: always  # 容器意外停止时自动重启
 ```
 
@@ -61,6 +63,8 @@ services:
       - /mnt/media/talebookData/books/imports:/app/downloads  # 挂载宿主机的目录到容器内
     environment:
       - API_KEY=106
+      - HTTP_PROXY=http://proxy.example.com:8080  # HTTP 代理（可选）
+      - HTTPS_PROXY=http://proxy.example.com:8080  # HTTPS 代理（可选）
     restart: always  # 容器意外停止时自动重启
 ```
 
@@ -74,6 +78,21 @@ body参数包含url,cookie,save_path,api_key
 - cookie：请求时需要使用的 Cookie（必填）。
 - save_path：文件保存相对路径（可选，最终文件下载路径为：DEFAULT_SAVE_PATH/save_path）。
 - api_key：API 密钥（可选，如果启用了 API 密钥验证）。
+
+## 环境变量说明
+- `PORT`: 服务端口，默认 8080
+- `DEFAULT_SAVE_PATH`: 默认文件保存路径，默认 ./download
+- `API_KEY`: API 访问密钥（可选）
+- `HTTP_PROXY`: HTTP 代理地址（可选），格式：http://proxy.example.com:8080
+- `HTTPS_PROXY`: HTTPS 代理地址（可选），格式：http://proxy.example.com:8080
+
+## 代理配置说明
+如果需要通过代理服务器下载文件，可以配置以下环境变量：
+- 支持 HTTP 和 HTTPS 代理
+- 支持大小写环境变量（HTTP_PROXY 或 http_proxy）
+- 代理格式：`http://proxy_host:proxy_port` 或 `http://username:password@proxy_host:proxy_port`
+- 服务器会根据目标 URL 的协议自动选择对应的代理
+
 示例：
 ```bash
 curl -X POST "http://127.0.0.1:8080/download" \

@@ -26,6 +26,9 @@ COPY --from=build /app ./
 # 设置环境变量
 ENV PORT=8080
 ENV DEFAULT_SAVE_PATH=/app/downloads
+# ENV HTTP_PROXY=http://proxy.example.com:8080
+# ENV HTTPS_PROXY=http://proxy.example.com:8080
+# ENV API_KEY=your_api_key_here
 
 # 暴露端口
 EXPOSE 8080

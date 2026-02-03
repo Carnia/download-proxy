@@ -3,11 +3,15 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
+const { HttpsProxyAgent } = require('https-proxy-agent');
+const { HttpProxyAgent } = require('http-proxy-agent');
 
 const app = express();
 const PORT = process.env.PORT || 8080; // 服务端口，默认 8080
 const DEFAULT_SAVE_PATH = process.env.DEFAULT_SAVE_PATH || './download'; // 默认文件保存路径
 const API_KEY = process.env.API_KEY; // API 访问密钥
+const HTTP_PROXY = process.env.HTTP_PROXY || process.env.http_proxy; // HTTP 代理
+const HTTPS_PROXY = process.env.HTTPS_PROXY || process.env.https_proxy; // HTTPS 代理
 const LOG_FILE = 'node.log';
 const MAX_LOG_LINES = 1000;
 
@@ -122,8 +126,8 @@ app.post('/download', async (req, res) => {
   }
 
   try {
-    // 使用 axios 下载文件
-    const response = await axios({
+    // 配置代理
+    const axiosConfig = {
       method: 'get',
       url,
       headers: {
@@ -137,7 +141,20 @@ app.post('/download', async (req, res) => {
       },
       maxRedirects: 3, // 支持 HTTP 重定向
       responseType: 'stream' // 流式响应
-    });
+    };
+
+    // 根据 URL 协议选择代理
+    const urlProtocol = new URL(url).protocol;
+    if (urlProtocol === 'https:' && HTTPS_PROXY) {
+      axiosConfig.httpsAgent = new HttpsProxyAgent(HTTPS_PROXY);
+      writeLog(`使用 HTTPS 代理: ${HTTPS_PROXY} - IP: ${clientIp}`);
+    } else if (urlProtocol === 'http:' && HTTP_PROXY) {
+      axiosConfig.httpAgent = new HttpProxyAgent(HTTP_PROXY);
+      writeLog(`使用 HTTP 代理: ${HTTP_PROXY} - IP: ${clientIp}`);
+    }
+
+    // 使用 axios 下载文件
+    const response = await axios(axiosConfig);
 
     // 解析文件名和文件大小
     const fileName = getFilenameFromResponse(response, url);
@@ -282,5 +299,7 @@ app.listen(PORT, () => {
   writeLog(`服务已启动，监听端口 ${PORT}`);
   writeLog(`默认文件保存路径：${DEFAULT_SAVE_PATH}`);
   writeLog(`API Key ${API_KEY ? '已启用' : '未启用'}`);
+  writeLog(`HTTP 代理: ${HTTP_PROXY || '未配置'}`);
+  writeLog(`HTTPS 代理: ${HTTPS_PROXY || '未配置'}`);
   writeLog(`日志文件：${LOG_FILE}，保留最近 ${MAX_LOG_LINES} 条`);
 });

@@ -15,6 +15,10 @@ EXPOSE 8080
 
 # 设置环境变量（默认保存路径）
 ENV DEFAULT_SAVE_PATH=/app/downloads
+ENV PORT=8080
+# ENV HTTP_PROXY=http://proxy.example.com:8080
+# ENV HTTPS_PROXY=http://proxy.example.com:8080
+# ENV API_KEY=your_api_key_here
 
 # 启动服务端
 CMD ["python3", "download_server.py"]

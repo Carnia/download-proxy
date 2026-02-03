@@ -9,6 +9,8 @@ import re
 DEFAULT_SAVE_PATH = os.getenv('DEFAULT_SAVE_PATH', './download')
 PORT = int(os.getenv('PORT', 8080))
 API_KEY = os.getenv('API_KEY', None)
+HTTP_PROXY = os.getenv('HTTP_PROXY') or os.getenv('http_proxy')
+HTTPS_PROXY = os.getenv('HTTPS_PROXY') or os.getenv('https_proxy')
 LOG_FILE = 'python.log'
 MAX_LOG_LINES = 1000
 
@@ -133,10 +135,20 @@ class DownloadHandler(BaseHTTPRequestHandler):
                 'Referer': f"{parsed_url.scheme}://{parsed_url.netloc}"
             }
             
+            # 配置代理
+            proxies = {}
+            if parsed_url.scheme == 'https' and HTTPS_PROXY:
+                proxies['https'] = HTTPS_PROXY
+                write_log(f'使用 HTTPS 代理: {HTTPS_PROXY} - IP: {client_ip}')
+            elif parsed_url.scheme == 'http' and HTTP_PROXY:
+                proxies['http'] = HTTP_PROXY
+                write_log(f'使用 HTTP 代理: {HTTP_PROXY} - IP: {client_ip}')
+            
             # 使用流式下载
             response = requests.get(
                 url,
                 headers=headers,
+                proxies=proxies if proxies else None,
                 allow_redirects=True,
                 stream=True,
                 timeout=30
@@ -246,6 +258,8 @@ def run(server_class=HTTPServer, handler_class=DownloadHandler):
     write_log(f'服务已启动，监听端口 {PORT}')
     write_log(f'默认文件保存路径：{DEFAULT_SAVE_PATH}')
     write_log(f'API Key {"已启用" if API_KEY else "未启用"}')
+    write_log(f'HTTP 代理: {HTTP_PROXY or "未配置"}')
+    write_log(f'HTTPS 代理: {HTTPS_PROXY or "未配置"}')
     write_log(f'日志文件：{LOG_FILE}，保留最近 {MAX_LOG_LINES} 条')
     try:
         httpd.serve_forever()
