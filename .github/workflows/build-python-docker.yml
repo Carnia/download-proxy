@@ -34,7 +34,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./Dockerfile
+          file: ./python/Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
             # ${{ secrets.DOCKER_HUB_USERNAME }}/${{ env.REPOSITORY }}:${{ steps.date.outputs.today }}
