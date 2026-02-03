@@ -5,7 +5,7 @@ FROM python:3.9-slim
 WORKDIR /app
 
 # 将当前目录下的所有文件复制到容器的 /app 目录
-COPY ./download_server.py /app
+COPY ./python/download_server.py /app
 
 # 安装依赖（requests 库）
 RUN pip install --no-cache-dir requests

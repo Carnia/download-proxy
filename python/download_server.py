@@ -143,9 +143,10 @@ class DownloadHandler(BaseHTTPRequestHandler):
             )
             response.raise_for_status()
             
-            # 解析文件名
+            # 解析文件名和文件大小
             filename = get_filename_from_response(response, url)
-            write_log(f'开始下载文件 - 文件名: {filename} - IP: {client_ip}')
+            total_size = int(response.headers.get('content-length', 0))
+            write_log(f'开始下载文件 - 文件名: {filename}, 大小: {total_size} bytes - IP: {client_ip}')
             
             # 确定文件保存路径
             if save_path:
@@ -159,36 +160,70 @@ class DownloadHandler(BaseHTTPRequestHandler):
             # 保存文件
             file_path = os.path.join(save_dir, filename)
             
+            # 设置响应头为分块传输
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header('Transfer-Encoding', 'chunked')
+            self.end_headers()
+            
             try:
+                downloaded_size = 0
+                last_progress = 0
+                
                 with open(file_path, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=8192):
                         if chunk:
                             f.write(chunk)
+                            downloaded_size += len(chunk)
+                            
+                            if total_size > 0:
+                                progress = int((downloaded_size / total_size) * 100)
+                                # 每 5% 发送一次进度更新
+                                if progress >= last_progress + 5 or progress == 100:
+                                    last_progress = progress
+                                    progress_data = json.dumps({
+                                        'type': 'progress',
+                                        'progress': progress,
+                                        'downloadedSize': downloaded_size,
+                                        'totalSize': total_size,
+                                        'fileName': filename
+                                    }, ensure_ascii=False) + '\n'
+                                    self.wfile.write(progress_data.encode('utf-8'))
+                                    self.wfile.flush()
+                                    write_log(f'下载进度 {progress}% IP: {client_ip}- {filename}')
                 
                 write_log(f'文件下载成功 - 路径: {file_path} - IP: {client_ip}')
-                self._send_json_response(200, {
+                final_data = json.dumps({
+                    'type': 'complete',
                     'message': '文件下载成功。',
-                    'filePath': file_path
-                })
+                    'filePath': file_path,
+                    'progress': 100
+                }, ensure_ascii=False) + '\n'
+                self.wfile.write(final_data.encode('utf-8'))
+                
             except Exception as e:
                 write_log(f'文件保存失败 - 错误: {str(e)} - IP: {client_ip}')
                 # 如果保存失败，删除文件
                 if os.path.exists(file_path):
                     os.unlink(file_path)
-                self._send_json_response(500, {
+                error_data = json.dumps({
+                    'type': 'error',
                     'message': '文件保存失败。',
                     'error': str(e)
-                })
+                }, ensure_ascii=False) + '\n'
+                self.wfile.write(error_data.encode('utf-8'))
         
         except requests.exceptions.RequestException as e:
             write_log(f'文件下载失败 - 错误: {str(e)} - IP: {client_ip}')
             self._send_json_response(500, {
+                'type': 'error',
                 'message': '文件下载失败。',
                 'error': str(e)
             })
         except Exception as e:
             write_log(f'服务器内部错误 - 错误: {str(e)} - IP: {client_ip}')
             self._send_json_response(500, {
+                'type': 'error',
                 'message': '服务器内部错误。',
                 'error': str(e)
             })

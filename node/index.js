@@ -139,9 +139,10 @@ app.post('/download', async (req, res) => {
       responseType: 'stream' // 流式响应
     });
 
-    // 解析文件名
+    // 解析文件名和文件大小
     const fileName = getFilenameFromResponse(response, url);
-    writeLog(`开始下载文件 - 文件名: ${fileName} - IP: ${clientIp}`);
+    const totalSize = parseInt(response.headers['content-length'] || '0', 10);
+    writeLog(`开始下载文件 - 文件名: ${fileName}, 大小: ${totalSize} bytes - IP: ${clientIp}`);
 
     // 确定文件保存路径
     const saveDir = save_path ? path.join(DEFAULT_SAVE_PATH, save_path) : DEFAULT_SAVE_PATH;
@@ -152,22 +153,120 @@ app.post('/download', async (req, res) => {
     // 保存文件
     const filePath = path.join(saveDir, fileName);
     const writer = fs.createWriteStream(filePath);
+    
+    let downloadedSize = 0;
+    let lastProgress = 0;
+
+    // 设置响应头为分块传输
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+    // 监听数据流
+    response.data.on('data', (chunk) => {
+      downloadedSize += chunk.length;
+      if (totalSize > 0) {
+        const progress = Math.floor((downloadedSize / totalSize) * 100);
+        // 每 5% 发送一次进度更新
+        if (progress >= lastProgress + 5 || progress === 100) {
+          lastProgress = progress;
+          const progressData = JSON.stringify({
+            type: 'progress',
+            progress,
+            downloadedSize,
+            totalSize,
+            fileName
+          }) + '\n';
+          try {
+            res.write(progressData);
+            writeLog(`下载进度 - ${fileName}: ${progress}% - IP: ${clientIp}`);
+          } catch (writeError) {
+            writeLog(`发送进度失败 - 错误: ${writeError.message} - IP: ${clientIp}`);
+          }
+        }
+      }
+    });
+
+    response.data.on('error', (streamError) => {
+      writeLog(`数据流错误 - 错误: ${streamError.message} - IP: ${clientIp}`);
+      writer.destroy();
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      if (!res.headersSent) {
+        res.status(500).json({
+          type: 'error',
+          message: '下载流错误。',
+          error: streamError.message
+        });
+      } else {
+        const errorData = JSON.stringify({
+          type: 'error',
+          message: '下载流错误。',
+          error: streamError.message
+        }) + '\n';
+        res.write(errorData);
+        res.end();
+      }
+    });
+
     response.data.pipe(writer);
 
     writer.on('finish', () => {
       writeLog(`文件下载成功 - 路径: ${filePath} - IP: ${clientIp}`);
-      res.status(200).json({ message: '文件下载成功。', filePath });
+      const finalData = JSON.stringify({
+        type: 'complete',
+        message: '文件下载成功。',
+        filePath,
+        progress: 100
+      }) + '\n';
+      res.write(finalData);
+      res.end();
     });
 
     writer.on('error', (err) => {
       writeLog(`文件保存失败 - 错误: ${err.message} - IP: ${clientIp}`);
-      fs.unlinkSync(filePath); // 如果保存失败，删除文件
-      res.status(500).json({ message: '文件保存失败。', error: err.message });
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath); // 如果保存失败，删除文件
+      }
+      const errorData = JSON.stringify({
+        type: 'error',
+        message: '文件保存失败。',
+        error: err.message
+      }) + '\n';
+      if (!res.headersSent) {
+        res.status(500).json({
+          type: 'error',
+          message: '文件保存失败。',
+          error: err.message
+        });
+      } else {
+        res.write(errorData);
+        res.end();
+      }
     });
 
   } catch (error) {
-    writeLog(`文件下载失败 - 错误: ${error.message} - IP: ${clientIp}`);
-    res.status(500).json({ message: '文件下载失败。', error: error.message });
+    const errorMessage = error.message || error.toString() || '未知错误';
+    const errorStack = error.stack || '';
+    writeLog(`文件下载失败 - 错误: ${errorMessage} - 堆栈: ${errorStack} - IP: ${clientIp}`);
+    
+    // 如果响应还没有发送，发送错误响应
+    if (!res.headersSent) {
+      res.status(500).json({ 
+        type: 'error',
+        message: '文件下载失败。', 
+        error: errorMessage 
+      });
+    } else {
+      // 如果已经开始发送响应（分块传输），发送错误消息并结束
+      const errorData = JSON.stringify({
+        type: 'error',
+        message: '文件下载失败。',
+        error: errorMessage
+      }) + '\n';
+      res.write(errorData);
+      res.end();
+    }
   }
 });
 

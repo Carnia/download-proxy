@@ -17,6 +17,13 @@
         size="small"
       />
     </div>
+    <!-- 进度条 -->
+    <div v-if="downloadProgress > 0 && downloadProgress < 100" style="margin-top: 10px;">
+      <el-progress :percentage="downloadProgress" :stroke-width="8" />
+      <div style="font-size: 12px; color: #666; margin-top: 5px; text-align: center;">
+        {{ downloadProgressText }}
+      </div>
+    </div>
     <div style="text-align: center; margin-top: 10px;">
       <el-button type="primary" :loading="downloadLoading" @click="doDownload">
         远程下载
@@ -40,6 +47,8 @@ const books = ref<
 >([]);
 const downloadLoading = ref(false);
 const customSavePath = ref(""); // 用户自定义的保存路径
+const downloadProgress = ref(0); // 下载进度百分比
+const downloadProgressText = ref(""); // 进度文本
 
 // 新增拖动相关逻辑
 const dragElement = ref<HTMLElement | null>(null);
@@ -140,42 +149,66 @@ const doDownload = async () => {
     });
     return;
   }
+  
   downloadLoading.value = true;
+  downloadProgress.value = 0;
+  downloadProgressText.value = "准备下载...";
 
   // 如果用户输入了自定义路径，使用自定义路径；否则使用配置中的路径
   const finalSavePath = customSavePath.value.trim() || savePath;
 
-  // 发送请求到后台脚本
-  browser.runtime.sendMessage(
-    {
-      action: "sendRequest",
-      url: urlString,
-      body: {
-        url: picked.value,
-        api_key: apiKey,
-        save_path: finalSavePath,
-        cookie: cookie,
-      }
-    },
-    (response) => {
-      if (response.error) {
-        ElMessage({
-          type: "error",
-          message: "请求失败: " + response.error,
-          duration: 1000000,
-          showClose: true
-        });
-      } else {
-        ElMessage({
-          type: "success",
-          message: "响应: " + response.data,
-          duration: 1000000,
-          showClose: true
-        });
-      }
+  // 创建长连接
+  const port = browser.runtime.connect({ name: 'download' });
+  
+  // 监听消息
+  port.onMessage.addListener((response) => {
+    if (response.type === 'progress') {
+      // 更新进度
+      downloadProgress.value = response.progress;
+      const downloadedMB = (response.downloadedSize / 1024 / 1024).toFixed(2);
+      const totalMB = (response.totalSize / 1024 / 1024).toFixed(2);
+      downloadProgressText.value = `${response.progress}% (${downloadedMB}MB / ${totalMB}MB)`;
+    } else if (response.type === 'complete') {
+      // 下载完成
+      downloadProgress.value = 100;
       downloadLoading.value = false;
+      ElMessage({
+        type: "success",
+        message: response.message,
+        duration: 5000,
+        showClose: true
+      });
+      // 3秒后重置进度条
+      setTimeout(() => {
+        downloadProgress.value = 0;
+        downloadProgressText.value = "";
+      }, 3000);
+      port.disconnect();
+    } else if (response.type === 'error') {
+      // 下载失败
+      downloadProgress.value = 0;
+      downloadLoading.value = false;
+      ElMessage({
+        type: "error",
+        message: "请求失败: " + (response.error || response.message),
+        duration: 10000,
+        showClose: true
+      });
+      port.disconnect();
     }
-  );
+  });
+
+  // 发送下载请求
+  port.postMessage({
+    action: "sendRequest",
+    url: urlString,
+    body: {
+      url: picked.value,
+      api_key: apiKey,
+      save_path: finalSavePath,
+      cookie: cookie,
+    }
+  });
 };
 onMounted(async () => {
 
