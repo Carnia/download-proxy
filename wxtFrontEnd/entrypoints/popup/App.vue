@@ -17,8 +17,8 @@
       <el-form-item label="服务端API Key" prop="apiKey">
         <el-input v-model="form.apiKey" clearable placeholder="可选，按需输入" />
       </el-form-item>
-      <el-form-item label="服务端保存路径" prop="savePath">
-        <el-input v-model="form.savePath" clearable placeholder="可选，按需输入" />
+      <el-form-item label="默认保存路径" prop="savePath">
+        <el-input v-model="form.savePath" clearable placeholder="相对路径，可选，按需输入" />
       </el-form-item>
       <el-form-item label="cookie" prop="cookieString">
         <el-input v-model="form.cookieString" type="textarea" clearable placeholder="可选，如果你已登陆z-library，将自动填充，无需手动填写" />

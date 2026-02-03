@@ -8,7 +8,16 @@
         book.filesizeString }}
       </el-radio>
     </el-radio-group>
-    <div style="text-align: center">
+    <div style="margin-top: 10px;">
+      <div style="margin-bottom: 5px; font-size: 14px;">保存到：</div>
+      <el-input 
+        v-model="customSavePath" 
+        placeholder="留空使用默认路径" 
+        clearable
+        size="small"
+      />
+    </div>
+    <div style="text-align: center; margin-top: 10px;">
       <el-button type="primary" :loading="downloadLoading" @click="doDownload">
         远程下载
       </el-button>
@@ -30,6 +39,7 @@ const books = ref<
   }[]
 >([]);
 const downloadLoading = ref(false);
+const customSavePath = ref(""); // 用户自定义的保存路径
 
 // 新增拖动相关逻辑
 const dragElement = ref<HTMLElement | null>(null);
@@ -132,6 +142,9 @@ const doDownload = async () => {
   }
   downloadLoading.value = true;
 
+  // 如果用户输入了自定义路径，使用自定义路径；否则使用配置中的路径
+  const finalSavePath = customSavePath.value.trim() || savePath;
+
   // 发送请求到后台脚本
   browser.runtime.sendMessage(
     {
@@ -140,7 +153,7 @@ const doDownload = async () => {
       body: {
         url: picked.value,
         api_key: apiKey,
-        save_path: savePath,
+        save_path: finalSavePath,
         cookie: cookie,
       }
     },
@@ -149,11 +162,15 @@ const doDownload = async () => {
         ElMessage({
           type: "error",
           message: "请求失败: " + response.error,
+          duration: 1000000,
+          showClose: true
         });
       } else {
         ElMessage({
           type: "success",
           message: "响应: " + response.data,
+          duration: 1000000,
+          showClose: true
         });
       }
       downloadLoading.value = false;
@@ -169,6 +186,13 @@ onMounted(async () => {
     document.addEventListener('mouseup', handleMouseUp);
   }
   await initCookie();
+  
+  // 加载配置并填充默认保存路径
+  const config = await getConfig();
+  if (config && config.savePath) {
+    customSavePath.value = config.savePath;
+  }
+  
   loadFirstData();
   await loadRestData();
 });
