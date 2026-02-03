@@ -8,8 +8,60 @@ const app = express();
 const PORT = process.env.PORT || 8080; // 服务端口，默认 8080
 const DEFAULT_SAVE_PATH = process.env.DEFAULT_SAVE_PATH || './download'; // 默认文件保存路径
 const API_KEY = process.env.API_KEY; // API 访问密钥
+const LOG_FILE = 'node.log';
+const MAX_LOG_LINES = 1000;
 
 app.use(express.json());
+
+/**
+ * 格式化时间戳
+ * @returns {string} 格式化的时间字符串 yyyy/mm/dd hh:mm:ss
+ */
+const formatTimestamp = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  return `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
+};
+
+/**
+ * 写入日志到文件，保留最近 1000 条
+ * @param {string} message - 日志消息
+ */
+const writeLog = (message) => {
+  const timestamp = formatTimestamp();
+  const logMessage = `[${timestamp}] ${message}\n`;
+  
+  // 同时输出到控制台
+  console.log(logMessage.trim());
+  
+  try {
+    let logs = [];
+    
+    // 读取现有日志
+    if (fs.existsSync(LOG_FILE)) {
+      const content = fs.readFileSync(LOG_FILE, 'utf-8');
+      logs = content.split('\n').filter(line => line.trim());
+    }
+    
+    // 添加新日志
+    logs.push(logMessage.trim());
+    
+    // 保留最近 1000 条
+    if (logs.length > MAX_LOG_LINES) {
+      logs = logs.slice(logs.length - MAX_LOG_LINES);
+    }
+    
+    // 写回文件
+    fs.writeFileSync(LOG_FILE, logs.join('\n') + '\n', 'utf-8');
+  } catch (error) {
+    console.error('写入日志失败:', error.message);
+  }
+};
 
 /**
  * 从响应头或 URL 中提取文件名
@@ -53,14 +105,19 @@ const getFilenameFromResponse = (response, url) => {
 // 文件下载接口
 app.post('/download', async (req, res) => {
   const { url, cookie, save_path, api_key } = req.body;
+  const clientIp = req.ip || req.connection.remoteAddress;
+  
+  writeLog(`收到下载请求 - IP: ${clientIp}, URL: ${url}, save_path: ${save_path || '默认'}`);
 
   // 检查必要参数
   if (!url || !cookie) {
+    writeLog(`请求失败 - 缺少必要参数 - IP: ${clientIp}`);
     return res.status(400).json({ message: '缺少必要参数：url 和 cookie。' });
   }
 
   // 检查 API Key 是否有效
   if (API_KEY && api_key !== API_KEY) {
+    writeLog(`请求失败 - 无效的 API Key - IP: ${clientIp}`);
     return res.status(403).json({ message: '无效的 API Key。' });
   }
 
@@ -84,6 +141,7 @@ app.post('/download', async (req, res) => {
 
     // 解析文件名
     const fileName = getFilenameFromResponse(response, url);
+    writeLog(`开始下载文件 - 文件名: ${fileName} - IP: ${clientIp}`);
 
     // 确定文件保存路径
     const saveDir = save_path ? path.join(DEFAULT_SAVE_PATH, save_path) : DEFAULT_SAVE_PATH;
@@ -97,27 +155,33 @@ app.post('/download', async (req, res) => {
     response.data.pipe(writer);
 
     writer.on('finish', () => {
+      writeLog(`文件下载成功 - 路径: ${filePath} - IP: ${clientIp}`);
       res.status(200).json({ message: '文件下载成功。', filePath });
     });
 
     writer.on('error', (err) => {
+      writeLog(`文件保存失败 - 错误: ${err.message} - IP: ${clientIp}`);
       fs.unlinkSync(filePath); // 如果保存失败，删除文件
       res.status(500).json({ message: '文件保存失败。', error: err.message });
     });
 
   } catch (error) {
+    writeLog(`文件下载失败 - 错误: ${error.message} - IP: ${clientIp}`);
     res.status(500).json({ message: '文件下载失败。', error: error.message });
   }
 });
 
 // 处理无效端点
 app.use((req, res) => {
+  const clientIp = req.ip || req.connection.remoteAddress;
+  writeLog(`无效的端点请求 - 路径: ${req.path} - IP: ${clientIp}`);
   res.status(404).json({ message: '无效的端点。' });
 });
 
 // 启动服务
 app.listen(PORT, () => {
-  console.log(`服务已启动，监听端口 ${PORT}`);
-  console.log(`默认文件保存路径：${DEFAULT_SAVE_PATH}`);
-  console.log(`API Key ${API_KEY ? '已启用' : '未启用'}`);
+  writeLog(`服务已启动，监听端口 ${PORT}`);
+  writeLog(`默认文件保存路径：${DEFAULT_SAVE_PATH}`);
+  writeLog(`API Key ${API_KEY ? '已启用' : '未启用'}`);
+  writeLog(`日志文件：${LOG_FILE}，保留最近 ${MAX_LOG_LINES} 条`);
 });

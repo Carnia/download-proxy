@@ -3,11 +3,48 @@ import json
 import requests
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import urlparse, unquote
+from datetime import datetime
 import re
 
 DEFAULT_SAVE_PATH = os.getenv('DEFAULT_SAVE_PATH', './download')
 PORT = int(os.getenv('PORT', 8080))
 API_KEY = os.getenv('API_KEY', None)
+LOG_FILE = 'python.log'
+MAX_LOG_LINES = 1000
+
+def format_timestamp():
+    """格式化时间戳为 yyyy/mm/dd hh:mm:ss"""
+    now = datetime.now()
+    return now.strftime('%Y/%m/%d %H:%M:%S')
+
+def write_log(message):
+    """写入日志到文件，保留最近 1000 条"""
+    timestamp = format_timestamp()
+    log_message = f'[{timestamp}] {message}'
+    
+    # 同时输出到控制台
+    print(log_message)
+    
+    try:
+        logs = []
+        
+        # 读取现有日志
+        if os.path.exists(LOG_FILE):
+            with open(LOG_FILE, 'r', encoding='utf-8') as f:
+                logs = [line.strip() for line in f if line.strip()]
+        
+        # 添加新日志
+        logs.append(log_message)
+        
+        # 保留最近 1000 条
+        if len(logs) > MAX_LOG_LINES:
+            logs = logs[-MAX_LOG_LINES:]
+        
+        # 写回文件
+        with open(LOG_FILE, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(logs) + '\n')
+    except Exception as e:
+        print(f'写入日志失败: {str(e)}')
 
 def get_filename_from_response(response, url):
     """
@@ -42,13 +79,17 @@ def get_filename_from_response(response, url):
 class DownloadHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         """处理 POST 请求 - 文件下载接口"""
+        client_ip = self.client_address[0]
+        
         if self.path != '/download':
+            write_log(f'无效的端点请求 - 路径: {self.path} - IP: {client_ip}')
             self._send_json_response(404, {'message': '无效的端点。'})
             return
         
         # 读取请求体
         content_length = int(self.headers.get('Content-Length', 0))
         if content_length == 0:
+            write_log(f'请求失败 - 请求体为空 - IP: {client_ip}')
             self._send_json_response(400, {'message': '请求体为空。'})
             return
         
@@ -56,6 +97,7 @@ class DownloadHandler(BaseHTTPRequestHandler):
             body = self.rfile.read(content_length)
             data = json.loads(body.decode('utf-8'))
         except json.JSONDecodeError:
+            write_log(f'请求失败 - 无效的 JSON 格式 - IP: {client_ip}')
             self._send_json_response(400, {'message': '无效的 JSON 格式。'})
             return
         
@@ -63,14 +105,18 @@ class DownloadHandler(BaseHTTPRequestHandler):
         cookie = data.get('cookie')
         save_path = data.get('save_path', '')
         api_key = data.get('api_key')
-        print(data)
+        
+        write_log(f'收到下载请求 - IP: {client_ip}, URL: {url}, save_path: {save_path or "默认"}')
+        
         # 检查必要参数
         if not url or not cookie:
+            write_log(f'请求失败 - 缺少必要参数 - IP: {client_ip}')
             self._send_json_response(400, {'message': '缺少必要参数：url 和 cookie。'})
             return
         
         # 检查 API Key 是否有效
         if API_KEY and api_key != API_KEY:
+            write_log(f'请求失败 - 无效的 API Key - IP: {client_ip}')
             self._send_json_response(403, {'message': '无效的 API Key。'})
             return
         
@@ -99,6 +145,7 @@ class DownloadHandler(BaseHTTPRequestHandler):
             
             # 解析文件名
             filename = get_filename_from_response(response, url)
+            write_log(f'开始下载文件 - 文件名: {filename} - IP: {client_ip}')
             
             # 确定文件保存路径
             if save_path:
@@ -118,11 +165,13 @@ class DownloadHandler(BaseHTTPRequestHandler):
                         if chunk:
                             f.write(chunk)
                 
+                write_log(f'文件下载成功 - 路径: {file_path} - IP: {client_ip}')
                 self._send_json_response(200, {
                     'message': '文件下载成功。',
                     'filePath': file_path
                 })
             except Exception as e:
+                write_log(f'文件保存失败 - 错误: {str(e)} - IP: {client_ip}')
                 # 如果保存失败，删除文件
                 if os.path.exists(file_path):
                     os.unlink(file_path)
@@ -132,11 +181,13 @@ class DownloadHandler(BaseHTTPRequestHandler):
                 })
         
         except requests.exceptions.RequestException as e:
+            write_log(f'文件下载失败 - 错误: {str(e)} - IP: {client_ip}')
             self._send_json_response(500, {
                 'message': '文件下载失败。',
                 'error': str(e)
             })
         except Exception as e:
+            write_log(f'服务器内部错误 - 错误: {str(e)} - IP: {client_ip}')
             self._send_json_response(500, {
                 'message': '服务器内部错误。',
                 'error': str(e)
@@ -150,20 +201,21 @@ class DownloadHandler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(data, ensure_ascii=False).encode('utf-8'))
     
     def log_message(self, format, *args):
-        """自定义日志格式"""
-        print(f"{self.address_string()} - [{self.log_date_time_string()}] {format % args}")
+        """禁用默认日志输出，使用自定义日志"""
+        pass
 
 def run(server_class=HTTPServer, handler_class=DownloadHandler):
     """启动服务器"""
     server_address = ('', PORT)
     httpd = server_class(server_address, handler_class)
-    print(f'服务已启动，监听端口 {PORT}')
-    print(f'默认文件保存路径：{DEFAULT_SAVE_PATH}')
-    print(f'API Key {"已启用" if API_KEY else "未启用"}')
+    write_log(f'服务已启动，监听端口 {PORT}')
+    write_log(f'默认文件保存路径：{DEFAULT_SAVE_PATH}')
+    write_log(f'API Key {"已启用" if API_KEY else "未启用"}')
+    write_log(f'日志文件：{LOG_FILE}，保留最近 {MAX_LOG_LINES} 条')
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        print('\n服务器已停止')
+        write_log('服务器已停止')
         httpd.shutdown()
 
 if __name__ == '__main__':
