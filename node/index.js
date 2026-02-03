@@ -6,19 +6,9 @@ const rateLimit = require('express-rate-limit');
 const { URL } = require('url');
 
 const app = express();
-app.set('trust proxy', true); // 设置信任代理
 const PORT = process.env.PORT || 8080; // 服务端口，默认 8080
 const DEFAULT_SAVE_PATH = process.env.DEFAULT_SAVE_PATH || './download'; // 默认文件保存路径
 const API_KEY = process.env.API_KEY; // API 访问密钥
-
-// 请求频率限制：每分钟最多 15 次请求
-const limiter = rateLimit({
-  windowMs: 60 * 1000, // 1 分钟
-  max: 15, // 每个 IP 每分钟最大请求数
-  handler: (req, res) => {
-    res.status(429).json({ message: '请求过于频繁，请稍后再试。' });
-  }
-});
 
 app.use(limiter);
 app.use(express.json());
