@@ -3,7 +3,7 @@
     <h3>z-Library远程下载插件</h3>
     <br>
     <div>选择目标文件：</div>
-    <el-radio-group v-model="picked">
+    <el-radio-group v-model="picked" style="height: 40vh;overflow: auto;">
       <el-radio v-for="book in books" :key="book.href" :value="book.href" size="large">{{ book.extension }} {{
         book.filesizeString }}
       </el-radio>
