@@ -122,4 +122,4 @@ docker rmi zlib-download-proxy
 - 下载浏览器插件文件：https://github.com/Carnia/zlib-download-proxy/tree/main/chromeExt
 - 在浏览器中加载插件
 
-![demo](https://github.com/Carnia/zlib-download-proxy/blob/main/picture/demo.jpg)
+![demo](https://github.com/Carnia/zlib-download-proxy/blob/main/picture/image.png)
