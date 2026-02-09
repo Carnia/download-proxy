@@ -14,8 +14,8 @@ https://github.com/Carnia/zlib-download-proxy
 services:
   # 远程下载zlibrary书籍能力
   zlib-download-proxy:  # 服务名称
-    image: xlqdys/download-proxy # 使用的镜像名称
-    container_name: download-proxy  # 容器名称
+    image: xlqdys/zlib-download-proxy # 使用的镜像名称
+    container_name: zlib-download-proxy  # 容器名称
     ports:
       - "8080:8080"  # 将容器的 8080 端口映射到主机的 8080 端口
     volumes:
@@ -55,7 +55,7 @@ services:
 
   # 远程下载zlibrary书籍能力
   zlib-download-proxy:  # 服务名称
-    image: xlqdys/download-proxy # 使用的镜像名称
+    image: xlqdys/zlib-download-proxy # 使用的镜像名称
     container_name: zlib-download-proxy  # 容器名称
     ports:
       - "8080:8080"  # 将容器的 8080 端口映射到主机的 8080 端口
