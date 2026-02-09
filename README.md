@@ -1,6 +1,6 @@
 # zlibrary文件下载服务器
 
-https://github.com/Carnia/download-proxy
+https://github.com/Carnia/zlib-download-proxy
 
 在服务器上部署一个文件下载服务，通过接口告知服务器要下载的内容，下载目的地是服务器。
 
@@ -13,7 +13,7 @@ https://github.com/Carnia/download-proxy
 ```yml
 services:
   # 远程下载zlibrary书籍能力
-  download-proxy:  # 服务名称
+  zlib-download-proxy:  # 服务名称
     image: xlqdys/download-proxy # 使用的镜像名称
     container_name: download-proxy  # 容器名称
     ports:
@@ -54,9 +54,9 @@ services:
     image: ghcr.nju.edu.cn/cxfksword/douban-api-rs
 
   # 远程下载zlibrary书籍能力
-  download-proxy:  # 服务名称
+  zlib-download-proxy:  # 服务名称
     image: xlqdys/download-proxy # 使用的镜像名称
-    container_name: download-proxy  # 容器名称
+    container_name: zlib-download-proxy  # 容器名称
     ports:
       - "8080:8080"  # 将容器的 8080 端口映射到主机的 8080 端口
     volumes:
@@ -108,18 +108,18 @@ curl -X POST "http://127.0.0.1:8080/download" \
 若需要停止并删除容器，可以使用以下命令：
 
 ```bash
-docker stop download-proxy
-docker rm download-proxy
+docker stop zlib-download-proxy
+docker rm zlib-download-proxy
 ```
 5. 清理未使用的镜像
 如果不再需要该镜像，可以使用以下命令删除镜像：
 
 ```bash
-docker rmi download-proxy
+docker rmi zlib-download-proxy
 ```
 
 ## 浏览器插件部署说明
-- 下载浏览器插件文件：https://github.com/Carnia/download-proxy/tree/main/chromeExt
+- 下载浏览器插件文件：https://github.com/Carnia/zlib-download-proxy/tree/main/chromeExt
 - 在浏览器中加载插件
 
-![demo](https://github.com/Carnia/download-proxy/blob/main/picture/demo.jpg)
+![demo](https://github.com/Carnia/zlib-download-proxy/blob/main/picture/demo.jpg)
